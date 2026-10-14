@@ -1,10 +1,10 @@
-# [Your Game Title] API
+# [Reach For The Stars] API
 
-Backend API for **[Your Game Title]**, a tournament game for the SorSU Bulan Campus library.
+Backend API for **[Reach For The Stars]**, a tournament game for the SorSU Bulan Campus library.
 CS 313 Software Engineering 1, A.Y. 2026-2027.
 
-- Developer: [Your full name] ([your GitHub username]), BSCS [3-1 or 3-2]
-- Group and game concept: [Group name]
+- Developer: [Nickson M. Formento] ([kennus4m2]), BSCS [3-1]
+- Group and game concept: [Team 5 - Reach for the Stars is a library-hosted multiplayer trivia tournament where players independently answer educational questions, earn stars, use strategic mystery-chest rewards, and compete to finish with the highest score before the round timer ends. ]
 
 This is my own build of my group's game concept. Every commit in this repository was made by me, with Git, on my own computer or in my own Codespace.
 
@@ -60,11 +60,23 @@ Base URL: `http://localhost:3001/api/v1`
 
 ## What "completed" means in my game
 
-[One or two sentences: when does a player count as having completed a game? For example: "A player completed the game when they answered every question, even if some answers were wrong or timed out."]
+[A player completed the game when they answered every question of the session's question set
+(number of answers = number of questions). A timeout counts as an answer. Players who stopped early get `completed: false` and `rank: null`.]
 
 ## Tables
 
-[List your tables, one line each, in the order of your migrations.]
+| Table | Purpose |
+| --- | --- |
+| users | Hosts and players' accounts, with a role (HOST or PLAYER), per Design Change Notice 01 |
+| question_sets | A host's reusable set of questions |
+| questions | Questions of a set, with position and time limit |
+| choices | Answer options of a question; one is correct |
+| sessions | One hosted game: join code, status, timer |
+| session_players | A user's seat in a session, with stars and streaks; UNIQUE (session_id, user_id) |
+| answers | One player's answer to one question |
+| chest_offers | A Mystery Chest earned on a 5-streak |
+| chest_slots | The three rewards inside a chest offer |
+
 
 ## Database scripts
 
