@@ -20,7 +20,7 @@ module.exports = {
   async up(q) {
     const db = q.sequelize;
     const one = async (sql) => (await db.query(sql))[0][0].id;
-    const host = await one("SELECT id FROM users WHERE school_id = '2099-0001'");
+    const host = await one("SELECT user_id AS id FROM users WHERE school_id = '2099-0001'");
     const set = await one("SELECT id FROM question_sets WHERE title = 'Science Basics'");
     await q.bulkInsert('sessions', [
       { host_id: host, question_set_id: set, join_code: '482731', status: 'ENDED', duration_sec: 300,
@@ -31,7 +31,7 @@ module.exports = {
     const res = PLAYS.map(([, , r, base]) => ({ ...play(r), base }));
     const seats = [];
     for (let i = 0; i < PLAYS.length; i++) {
-      const uid = await one(`SELECT id FROM users WHERE school_id = '${PLAYS[i][0]}'`);
+    const uid = await one(`SELECT user_id AS id FROM users WHERE school_id = '${PLAYS[i][0]}'`);
       const p = res[i];
       seats.push({ session_id: sid, user_id: uid, nickname: PLAYS[i][1], stars: p.st, current_streak: p.sk, best_streak: p.best,
         correct_count: p.ok, answer_count: p.rows.length, total_answer_ms: p.rows.reduce((a, _, k) => a + p.base + k * 100, 0) });

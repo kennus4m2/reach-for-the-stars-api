@@ -9,7 +9,7 @@ const Q = [
 module.exports = {
   async up(q) {
     const db = q.sequelize;
-    const [[h]] = await db.query("SELECT id FROM users WHERE school_id = '2099-0001'");
+    const [[h]] = await db.query("SELECT user_id AS id FROM users WHERE school_id = '2099-0001'");
     await q.bulkInsert('question_sets', [{ host_id: h.id, title: 'Science Basics', description: 'Planets and more', subject: 'Science', grade_level: 'College' }]);
     const [[s]] = await db.query("SELECT id FROM question_sets WHERE title = 'Science Basics'");
     await q.bulkInsert('questions', Q.map((x, i) => ({ question_set_id: s.id, position: i + 1, text: x[0], type: 'multiple_choice', time_limit_sec: 20 })));

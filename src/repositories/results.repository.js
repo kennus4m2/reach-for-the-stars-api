@@ -37,7 +37,7 @@ async function findFinishedGamePlayers(since) {
              = (SELECT COUNT(*) FROM questions q WHERE q.question_set_id = s.question_set_id) AS completed
     FROM sessions s
     JOIN session_players p ON p.session_id = s.id
-    JOIN users u ON u.id = p.user_id
+    JOIN users u ON u.user_id = p.user_id
     WHERE s.status = 'ENDED'
       AND (CAST(:since AS timestamptz) IS NULL OR s.ended_at > CAST(:since AS timestamptz))
     ORDER BY s.ended_at, p.stars DESC, p.correct_count DESC
