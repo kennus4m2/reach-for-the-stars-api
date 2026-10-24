@@ -1,10 +1,10 @@
-# [Reach For The Stars] API
+# Reach For The Stars API
 
-Backend API for **[Reach For The Stars]**, a tournament game for the SorSU Bulan Campus library.
+Backend API for **Reach For The Stars**, a tournament game for the SorSU Bulan Campus library.
 CS 313 Software Engineering 1, A.Y. 2026-2027.
 
-- Developer: [Nickson M. Formento] ([kennus4m2]), BSCS [3-1]
-- Group and game concept: [Team 5 - Reach for the Stars is a library-hosted multiplayer trivia tournament where players independently answer educational questions, earn stars, use strategic mystery-chest rewards, and compete to finish with the highest score before the round timer ends. ]
+- Developer: Nickson M. Formento (kennus4m2), BSCS 3-1
+- Group and game concept: Team 5 - Reach for the Stars is a library-hosted multiplayer trivia tournament where players independently answer educational questions, earn stars, use strategic mystery-chest rewards, and compete to finish with the highest score before the round timer ends.
 
 This is my own build of my group's game concept. Every commit in this repository was made by me, with Git, on my own computer or in my own Codespace.
 
@@ -58,10 +58,60 @@ Base URL: `http://localhost:3001/api/v1`
 | GET | /game-info | Slug, name, group, developer, description, player limits, version | 200 |
 | GET | /results | Finished games, every player, and the top 3. Needs the `X-Hub-Key` header. Optional `?since=` | 200 (401 without the key) |
 
+## API endpoints / Week 11 (Step 7.4)
+
+Base URL: `http://localhost:3001/api/v1`
+
+**Sign-in this week:** send the header `X-Demo-User: <school ID>` (real login comes in Week 12). Error answers always look like `{ "error": { "code": "...", "message": "..." } }`.
+
+### Hub Contract (from Week 10)
+
+| Verb | URL | Who may call it | Success |
+| --- | --- | --- | --- |
+| GET | `/health` | Anyone | 200 |
+| GET | `/game-info` | Anyone | 200 |
+| GET | `/results` (optional `?since=`) | The Library Game Hub, with the `X-Hub-Key` header | 200 |
+
+### Module 1: Question sets
+
+| Verb | URL | Who may call it | Success |
+| --- | --- | --- | --- |
+| POST | `/question-sets` | Host or admin | 201 |
+| GET | `/question-sets` | Host (own sets only) or admin (all sets) | 200 |
+| GET | `/question-sets/{id}` | The host who owns it, or admin | 200 |
+| PATCH | `/question-sets/{id}` | The host who owns it, or admin | 200 |
+| DELETE | `/question-sets/{id}` | The host who owns it, or admin | 204 |
+
+Body fields: `title` (required, 3 to 255 characters), `description` (up to 1000), `subject` (up to 100), `grade_level` (up to 50). A question set that was used in a game cannot be deleted (409 `QUESTION_SET_IN_USE`).
+
+### Module 2: Sessions and joining
+
+| Verb | URL | Who may call it | Success |
+| --- | --- | --- | --- |
+| POST | `/sessions` | Host or admin (with a question set they own) | 201 |
+| GET | `/sessions/{code}` | Anyone | 200 |
+| PATCH | `/sessions/{code}` | The host of that game, or admin | 200 |
+| POST | `/sessions/{code}/players` | Any signed-in account | 201 new seat, 200 rejoin |
+| GET | `/sessions/{code}/players` | Anyone (nicknames and stars only) | 200 |
+
+- `POST /sessions` body: `question_set_id` (required), `duration_sec` (optional, 30 to 3600, default 300). The server creates the six-digit `code`.
+- `PATCH /sessions/{code}` body: `status` is `ACTIVE` or `ENDED`. Allowed changes: WAITING to ACTIVE or ENDED, ACTIVE to ENDED. Anything else is 409 `INVALID_STATUS_CHANGE`.
+- `POST /sessions/{code}/players` body: `nickname` (2 to 20 characters). An account that already has a seat gets the same `player_id` back (200). A new player cannot join a game that has started (409 `GAME_ALREADY_STARTED`) or is full (409 `SESSION_FULL`). A taken nickname is 409 `NICKNAME_TAKEN`.
+
+### Error codes
+
+| Status | Codes |
+| --- | --- |
+| 400 | `VALIDATION_FAILED`, `INVALID_JSON` |
+| 401 | `AUTH_REQUIRED`, `HUB_KEY_REQUIRED` |
+| 403 | `FORBIDDEN` |
+| 404 | `QUESTION_SET_NOT_FOUND`, `SESSION_NOT_FOUND` |
+| 409 | `INVALID_STATUS_CHANGE`, `GAME_ALREADY_STARTED`, `SESSION_FULL`, `NICKNAME_TAKEN`, `ALREADY_JOINED`, `QUESTION_SET_IN_USE` |
+
 ## What "completed" means in my game
 
-[A player completed the game when they answered every question of the session's question set
-(number of answers = number of questions). A timeout counts as an answer. Players who stopped early get `completed: false` and `rank: null`.]
+A player completed the game when they answered every question of the session's question set
+(number of answers = number of questions). A timeout counts as an answer. Players who stopped early get `completed: false` and `rank: null`.
 
 ## Tables
 
