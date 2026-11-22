@@ -798,7 +798,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
-                  "pm.test(\"a list comes back\", () => pm.expect(pm.response.json()).to.exist);"
+                  "pm.test(\"envelope\", () => { const b = pm.response.json(); pm.expect(b.data).to.be.an(\"array\"); pm.expect(b.meta.limit).to.eql(5); });"
                 ]
               }
             }
@@ -1367,6 +1367,369 @@
             "body": {
               "mode": "raw",
               "raw": "{\"status\":\"ACTIVE\"}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Question bank",
+      "item": [
+        {
+          "name": "Q1 Host creates a bank set",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 201\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"bankId\", pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{hostToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/question-sets",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"title\":\"Bank Test Set\",\"subject\":\"Science\"}"
+            }
+          }
+        },
+        {
+          "name": "Q2 Page and limit",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"meta.limit is 2\", () => pm.expect(pm.response.json().meta.limit).to.eql(2));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{hostToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/question-sets?page=1&limit=2&sort=title&order=asc"
+          }
+        },
+        {
+          "name": "Q3 Search finds it",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"one or more\", () => pm.expect(pm.response.json().data.length).to.be.above(0));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{hostToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/question-sets?q=Bank"
+          }
+        },
+        {
+          "name": "Q4 Search finds nothing (still 200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"empty list\", () => pm.expect(pm.response.json().data.length).to.eql(0));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{hostToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/question-sets?q=zzzzzz"
+          }
+        },
+        {
+          "name": "Q5 Sort column not allowed",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"code is VALIDATION_FAILED\", () => pm.expect(pm.response.json().error.code).to.eql(\"VALIDATION_FAILED\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{hostToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/question-sets?sort=host_id"
+          }
+        },
+        {
+          "name": "Q6 Add a question with choices",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 201\", () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{hostToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/question-sets/{{bankId}}/questions",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"text\":\"Which planet has rings?\",\"time_limit_sec\":20,\"choices\":[{\"text\":\"Saturn\",\"is_correct\":true},{\"text\":\"Mars\",\"is_correct\":false}]}"
+            }
+          }
+        },
+        {
+          "name": "Q7 Two correct choices",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"code is VALIDATION_FAILED\", () => pm.expect(pm.response.json().error.code).to.eql(\"VALIDATION_FAILED\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{hostToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/question-sets/{{bankId}}/questions",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"text\":\"Pick the right ones\",\"choices\":[{\"text\":\"A\",\"is_correct\":true},{\"text\":\"B\",\"is_correct\":true}]}"
+            }
+          }
+        },
+        {
+          "name": "Q8 Player adds a question",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 403\", () => pm.response.to.have.status(403));",
+                  "pm.test(\"code is FORBIDDEN\", () => pm.expect(pm.response.json().error.code).to.eql(\"FORBIDDEN\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{playerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/question-sets/{{bankId}}/questions",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"text\":\"Sneaky question\",\"choices\":[{\"text\":\"A\",\"is_correct\":true},{\"text\":\"B\",\"is_correct\":false}]}"
+            }
+          }
+        },
+        {
+          "name": "Q9 Read with include=questions",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"questions with choices\", () => pm.expect(pm.response.json().questions[0].choices.length).to.eql(2));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{hostToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/question-sets/{{bankId}}?include=questions"
+          }
+        },
+        {
+          "name": "Q10 Edit a set that a game used (frozen)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 409\", () => pm.response.to.have.status(409));",
+                  "pm.test(\"code is QUESTION_SET_FROZEN\", () => pm.expect(pm.response.json().error.code).to.eql(\"QUESTION_SET_FROZEN\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{hostToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/question-sets/1/questions",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"text\":\"Too late to add me\",\"choices\":[{\"text\":\"A\",\"is_correct\":true},{\"text\":\"B\",\"is_correct\":false}]}"
+            }
+          }
+        },
+        {
+          "name": "Q11 Upload a good cover",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{hostToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/question-sets/{{bankId}}/cover",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "cover",
+                  "type": "file",
+                  "src": "postman/fixtures/cover.png"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Q12 Upload the wrong file type",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"code is INVALID_FILE_TYPE\", () => pm.expect(pm.response.json().error.code).to.eql(\"INVALID_FILE_TYPE\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{hostToken}}"
+              }
+            ],
+            "url": "{{baseUrl}}/question-sets/{{bankId}}/cover",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "cover",
+                  "type": "file",
+                  "src": "postman/fixtures/not-a-picture.txt"
+                }
+              ]
             }
           }
         }

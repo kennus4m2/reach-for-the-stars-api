@@ -14,10 +14,13 @@ async function findOwned(id, user) {
   if (!isOwner(questionSet, user)) throw forbidden('This question set belongs to another host.');
   return questionSet;
 }
-function list(user) {
-  return user.role === 'ADMIN' ? questionSetRepository.findAll() : questionSetRepository.findAllByHost(user.user_id);
+function list(user, query) {
+  return questionSetRepository.findPage({ ...query, hostId: user.role === 'ADMIN' ? null : user.user_id });
 }
-const get = (id, user) => findOwned(id, user);
+async function get(id, user, include) {
+  const questionSet = await findOwned(id, user);
+  return include === 'questions' ? questionSetRepository.findByIdWithQuestions(id) : questionSet;
+}
 const create = (data, user) => questionSetRepository.create({ ...data, host_id: user.user_id });
 async function update(id, changes, user) {
   const questionSet = await findOwned(id, user);
@@ -25,7 +28,11 @@ async function update(id, changes, user) {
 }
 async function remove(id, user) {
   const questionSet = await findOwned(id, user);
-  await questionSetRepository.destroy(questionSet); // a set used by a game: the database says 409
+  await questionSetRepository.destroy(questionSet);   // used by a game: the database says 409
+}
+async function setCover(id, file, user) {
+  const questionSet = await findOwned(id, user);
+  return questionSetRepository.update(questionSet, { cover_path: `/uploads/covers/${file.filename}` });
 }
 
-module.exports = { findOrFail, list, get, create, update, remove };
+module.exports = { findOrFail, findOwned, list, get, create, update, remove, setCover };
