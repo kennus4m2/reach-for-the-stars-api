@@ -2,6 +2,7 @@
 const express = require('express');
 const morgan = require('morgan');
 const env = require('./config/env');
+const path = require('path');
 const routes = require('./routes');
 const notFound = require('./middlewares/not-found');
 const errorHandler = require('./middlewares/error-handler');
@@ -13,9 +14,11 @@ if (env.nodeEnv !== 'test') app.use(morgan('dev'));   // 1. one log line per req
 app.use(express.json());                              // 2. turn the JSON body into req.body
 
 // Hub Contract: every endpoint lives under /api/v1
-app.use('/api/v1', routes);                           // 3. the routes
+app.use('/api/v1', routes);                          // 3. the routes
 
 app.use(notFound);                                    // 4. no route matched
 app.use(errorHandler);                                // 5. something was thrown
+
+app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
 module.exports = app;
