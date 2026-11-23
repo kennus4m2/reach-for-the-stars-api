@@ -2,6 +2,7 @@
 const express = require('express');
 const morgan = require('morgan');
 const env = require('./config/env');
+const path = require('path');
 const routes = require('./routes');
 const notFound = require('./middlewares/not-found');
 const errorHandler = require('./middlewares/error-handler');
