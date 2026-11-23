@@ -15,28 +15,38 @@ async function seatOf(code, user) {
   if (!seat) throw forbidden('You have no seat in this game. Join it first.');
   return { session, seat };
 }
-function mustBeActive(session) {
+async function mustBeActive(session) {
+  if (session.status === 'ACTIVE' && session.ends_at && new Date() > new Date(session.ends_at)) {
+    await sessionService.endIfTimeIsUp(session);          // the timer ended: close the game for everybody
+    throw conflict('GAME_TIME_UP', 'The time of this game is over.');
+  }
   if (session.status !== 'ACTIVE') throw conflict('GAME_NOT_ACTIVE', 'The game is not running.');
-  if (session.ends_at && new Date() > new Date(session.ends_at)) throw conflict('GAME_TIME_UP', 'The time of this game is over.');
 }
 
-// Each player goes through the questions at their own pace: ONLY the next question is ever served.
+// Each player goes through the questions at their own pace. The questions LOOP:
+// after the last one comes the first again, until the timer of the game ends.
 async function currentQuestion(code, user) {
   const { session, seat } = await seatOf(code, user);
-  mustBeActive(session);
-  const question = await questionRepository.findByPosition(session.question_set_id, seat.answer_count + 1);
-  if (!question) throw conflict('NO_MORE_QUESTIONS', 'You answered every question. Wait for the leaderboard.');
+  await mustBeActive(session);
+  const total = await questionRepository.countBySet(session.question_set_id);
+  if (!total) throw conflict('NO_QUESTIONS', 'This question set has no questions.');
+  const question = await questionRepository.findByPosition(session.question_set_id, (seat.answer_count % total) + 1);
   if (seat.current_question_id !== question.id) {   // the clock starts once; refreshing does not reset it
     await playerRepository.update(seat, { current_question_id: question.id, question_served_at: new Date() });
   }
-  return { question, total: await questionRepository.countBySet(session.question_set_id) };
+  return { question, total, round: Math.floor(seat.answer_count / total) + 1 };
 }
 
 async function submitAnswer(code, { question_id, choice_id }, user) {
   const { session, seat } = await seatOf(code, user);
-  mustBeActive(session);
-  if (await answerRepository.find(seat.id, question_id)) throw conflict('ALREADY_ANSWERED', 'You already answered this question.');
-  if (seat.current_question_id !== question_id) throw conflict('NOT_CURRENT_QUESTION', 'Answer the question you were served. Ask for it with GET /question.');
+  await mustBeActive(session);
+  if (seat.current_question_id !== question_id) {
+    const last = await answerRepository.findLatest(seat.id);
+    if (!seat.current_question_id && last && last.question_id === question_id) {
+      throw conflict('ALREADY_ANSWERED', 'You already answered this question. Ask for the next one with GET /question.');
+    }
+    throw conflict('NOT_CURRENT_QUESTION', 'Answer the question you were served. Ask for it with GET /question.');
+  }
   const choice = await questionRepository.findChoice(choice_id);
   if (!choice || choice.question_id !== question_id) throw badRequest('CHOICE_NOT_IN_QUESTION', 'That choice does not belong to this question.');
 
@@ -44,6 +54,7 @@ async function submitAnswer(code, { question_id, choice_id }, user) {
   const elapsedMs = Date.now() - new Date(seat.question_served_at).getTime();   // the SERVER measures time
   const correct = choice.is_correct && !scoring.isLate(elapsedMs, question.time_limit_sec);
   const r = scoring.applyAnswer(seat, correct);
+  const total = await questionRepository.countBySet(session.question_set_id);
 
   const { saved, offer } = await answerRepository.record({
     seat,
@@ -58,7 +69,7 @@ async function submitAnswer(code, { question_id, choice_id }, user) {
   });
   const correctChoice = question.choices.find((c) => c.is_correct);
   return { saved, offer, correctChoiceId: correctChoice.id, stars: r.stars, streak: r.streak, earned: r.earned,
-    late: choice.is_correct && !correct, done: seat.answer_count + 1 >= (await questionRepository.countBySet(session.question_set_id)) };
+    late: choice.is_correct && !correct, roundCompleted: (seat.answer_count + 1) % total === 0 };
 }
 
 async function openChest(code, offerId, slotNumber, user) {

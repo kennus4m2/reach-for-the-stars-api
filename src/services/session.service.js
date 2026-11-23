@@ -45,4 +45,7 @@ async function changeStatus(code, status, user) {
   return sessionRepository.update(session, changes);
 }
 
-module.exports = { findOrFail, create, changeStatus };
+// The clock decides when a game is over, not only the host.
+const endIfTimeIsUp = (session) => sessionRepository.update(session, { status: 'ENDED', ended_at: session.ends_at });
+
+module.exports = { findOrFail, create, changeStatus, endIfTimeIsUp };

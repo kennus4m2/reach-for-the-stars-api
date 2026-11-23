@@ -1,0 +1,74 @@
+    QuestionSet:
+      type: object
+      properties:
+        id: { type: integer, example: 1 }
+        title: { type: string, example: Science Basics }
+        description: { type: string, nullable: true }
+        subject: { type: string, nullable: true, example: Science }
+        grade_level: { type: string, nullable: true }
+        cover_url: { type: string, nullable: true, example: /uploads/covers/set-1-3f2a.png }
+        host_id: { type: integer }
+        created_at: { type: string, format: date-time }
+    Question:
+      type: object
+      properties:
+        id: { type: integer }
+        position: { type: integer, example: 1 }
+        text: { type: string, example: "Which planet has rings?" }
+        time_limit_sec: { type: integer, example: 20 }
+        choices:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: integer }
+              index: { type: integer }
+              text: { type: string }
+              is_correct: { type: boolean, description: Only hosts see this }
+    Session:
+      type: object
+      properties:
+        code: { type: string, example: "482731" }
+        status: { type: string, enum: [WAITING, ACTIVE, ENDED] }
+        question_set_id: { type: integer }
+        duration_sec: { type: integer, example: 300 }
+        started_at: { type: string, format: date-time, nullable: true }
+        ends_at: { type: string, format: date-time, nullable: true }
+        ended_at: { type: string, format: date-time, nullable: true }
+    ServedQuestion:
+      type: object
+      description: The question a player is on. It never contains is_correct.
+      properties:
+        question_id: { type: integer }
+        position: { type: integer }
+        total: { type: integer }
+        round: { type: integer, example: 1, description: The questions loop until the timer ends }
+        text: { type: string }
+        time_limit_sec: { type: integer }
+        choices:
+          type: array
+          items:
+            type: object
+            properties:
+              choice_id: { type: integer }
+              index: { type: integer }
+              text: { type: string }
+    AnswerResult:
+      type: object
+      properties:
+        correct: { type: boolean }
+        late: { type: boolean }
+        correct_choice_id: { type: integer }
+        stars_earned: { type: integer, example: 1 }
+        stars: { type: integer }
+        streak: { type: integer }
+        answer_time_ms: { type: integer, description: Measured by the server }
+        round_completed: { type: boolean, description: true when this answer finished a full round of questions }
+        chest_offer_id: { type: integer, nullable: true }
+    LeaderboardRow:
+      type: object
+      properties:
+        rank: { type: integer, example: 1 }
+        nickname: { type: string }
+        stars: { type: integer }
+        best_streak: { type: integer }

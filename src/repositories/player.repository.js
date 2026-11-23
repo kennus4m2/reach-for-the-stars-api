@@ -5,7 +5,7 @@ const countBySession = (sessionId) => SessionPlayer.count({ where: { session_id:
 const create = (data) => SessionPlayer.create(data);
 const update = (seat, changes) => seat.update(changes);
 const findAllBySession = (sessionId) =>
-SessionPlayer.findAll({ where: { session_id: sessionId }, order: [['stars', 'DESC'], ['id', 'ASC']] });
+  SessionPlayer.findAll({ where: { session_id: sessionId }, order: [['stars', 'DESC'], ['id', 'ASC']] });
 // best first: stars, then more correct answers, then the faster total time
 const findRanked = (sessionId, limit) => SessionPlayer.findAll({
   where: { session_id: sessionId },
