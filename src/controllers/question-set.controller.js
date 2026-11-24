@@ -19,16 +19,16 @@ async function get(req, res) {
   res.json(toJson(await questionSetService.get(id, req.user, include)));
 }
 async function create(req, res) {
-res.status(201).json(toJson(await questionSetService.create(matchedData(req), req.user)));
+  res.status(201).json(toJson(await questionSetService.create(matchedData(req), req.user)));
 }
 async function update(req, res) {
-const { id, ...changes } = matchedData(req);
-res.json(toJson(await questionSetService.update(id, changes, req.user)));
+  const { id, ...changes } = matchedData(req);
+  res.json(toJson(await questionSetService.update(id, changes, req.user)));
 }
 async function remove(req, res) {
-const { id } = matchedData(req);
-await questionSetService.remove(id, req.user);
-res.status(204).send();
+  const { id } = matchedData(req);
+  await questionSetService.remove(id, req.user);
+  res.status(204).send();
 }
 async function uploadCover(req, res) {
   const { id } = matchedData(req);
