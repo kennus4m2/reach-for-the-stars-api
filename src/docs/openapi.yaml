@@ -1,18 +1,17 @@
-# Week 15 kit: starter OpenAPI document. The Hub Contract and account endpoints are written for you.
-# Replace every CHANGE_ME, then add one entry under paths for EVERY endpoint of your game
-# (the check needs at least 15 operations, each with a summary and its responses).
 openapi: 3.0.3
 info:
-  title: CHANGE_ME Your Game API
+  title: Reach for the Stars API
   version: 1.0.0
-  description: >
-    CHANGE_ME: one paragraph about your game. Implements Hub Contract v1.3. Every error answers { "error": { "code",
-    "message" } }.
+  description: |
+    Reach for the Stars is a library-hosted multiplayer trivia tournament. Hosts build question sets and start a game with a 6-digit code; players join
+    and answer at their own pace. The questions loop (after the last one comes the first again) until the timer of the game ends. Correct answers earn stars,
+    streaks and Mystery Chests, and the Library Game Hub reads the finished games from /results.
 
+    Implements Hub Contract v1.3. Every error answers { "error": { "code", "message" } }.
 
     Log in with POST /auth/login, then click Authorize and paste the token.
   contact:
-    name: CHANGE_ME your name (your GitHub username)
+    name: Nickson Formento (kennus4m2)
 servers:
   - url: /api/v1
     description: This server
@@ -20,6 +19,11 @@ tags:
   - name: Hub Contract
     description: The endpoints every game provides to the Library Game Hub
   - name: Accounts
+  - name: Admin
+  - name: Question sets
+  - name: Question bank
+  - name: Sessions
+  - name: Gameplay
 components:
   securitySchemes:
     bearerAuth:
@@ -140,6 +144,157 @@ components:
         pages:
           type: integer
           example: 3
+    QuestionSet:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        title:
+          type: string
+          example: Science Basics
+        description:
+          type: string
+          nullable: true
+        subject:
+          type: string
+          nullable: true
+          example: Science
+        grade_level:
+          type: string
+          nullable: true
+        cover_url:
+          type: string
+          nullable: true
+          example: /uploads/covers/set-1-3f2a.png
+        host_id:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+    Question:
+      type: object
+      properties:
+        id:
+          type: integer
+        position:
+          type: integer
+          example: 1
+        text:
+          type: string
+          example: Which planet has rings?
+        time_limit_sec:
+          type: integer
+          example: 20
+        choices:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              index:
+                type: integer
+              text:
+                type: string
+              is_correct:
+                type: boolean
+                description: Only hosts see this
+    Session:
+      type: object
+      properties:
+        code:
+          type: string
+          example: "482731"
+        status:
+          type: string
+          enum:
+            - WAITING
+            - ACTIVE
+            - ENDED
+        question_set_id:
+          type: integer
+        duration_sec:
+          type: integer
+          example: 300
+        started_at:
+          type: string
+          format: date-time
+          nullable: true
+        ends_at:
+          type: string
+          format: date-time
+          nullable: true
+        ended_at:
+          type: string
+          format: date-time
+          nullable: true
+    ServedQuestion:
+      type: object
+      description: The question a player is on. It never contains is_correct.
+      properties:
+        question_id:
+          type: integer
+        position:
+          type: integer
+        total:
+          type: integer
+        round:
+          type: integer
+          example: 1
+          description: The questions loop until the timer ends
+        text:
+          type: string
+        time_limit_sec:
+          type: integer
+        choices:
+          type: array
+          items:
+            type: object
+            properties:
+              choice_id:
+                type: integer
+              index:
+                type: integer
+              text:
+                type: string
+    AnswerResult:
+      type: object
+      properties:
+        correct:
+          type: boolean
+        late:
+          type: boolean
+        correct_choice_id:
+          type: integer
+        stars_earned:
+          type: integer
+          example: 1
+        stars:
+          type: integer
+        streak:
+          type: integer
+        answer_time_ms:
+          type: integer
+          description: Measured by the server
+        round_completed:
+          type: boolean
+          description: true when this answer finished a full round of questions
+        chest_offer_id:
+          type: integer
+          nullable: true
+    LeaderboardRow:
+      type: object
+      properties:
+        rank:
+          type: integer
+          example: 1
+        nickname:
+          type: string
+        stars:
+          type: integer
+        best_streak:
+          type: integer
 paths:
   /health:
     get:
@@ -312,3 +467,853 @@ paths:
                     $ref: "#/components/schemas/User"
         "401":
           $ref: "#/components/responses/Unauthorized"
+  /users:
+    get:
+      tags:
+        - Admin
+      summary: List every account (admin only)
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: The accounts, without passwords
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /users/{id}/role:
+    patch:
+      tags:
+        - Admin
+      summary: Change an account's role (admin only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - role
+              properties:
+                role:
+                  type: string
+                  enum:
+                    - PLAYER
+                    - HOST
+                    - ADMIN
+            example:
+              role: HOST
+      responses:
+        "200":
+          description: The account with its new role
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: An admin cannot change their own role (CANNOT_CHANGE_OWN_ROLE)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /question-sets:
+    get:
+      tags:
+        - Question sets
+      summary: List my question sets, paged, searchable and sortable
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 10
+        - name: q
+          in: query
+          description: Words in the title
+          schema:
+            type: string
+            maxLength: 100
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum:
+              - id
+              - title
+              - created_at
+        - name: order
+          in: query
+          schema:
+            type: string
+            enum:
+              - asc
+              - desc
+      responses:
+        "200":
+          description: "{ data, meta }. An empty list is still 200."
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/QuestionSet"
+                  meta:
+                    $ref: "#/components/schemas/Meta"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    post:
+      tags:
+        - Question sets
+      summary: Create a question set (host or admin)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+              properties:
+                title:
+                  type: string
+                  minLength: 3
+                  maxLength: 255
+                description:
+                  type: string
+                  maxLength: 1000
+                subject:
+                  type: string
+                  maxLength: 100
+                grade_level:
+                  type: string
+                  maxLength: 50
+            example:
+              title: Philippine Literature
+              subject: Literature
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuestionSet"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /question-sets/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+    get:
+      tags:
+        - Question sets
+      summary: Read one question set (owner only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: include
+          in: query
+          description: questions loads its questions and choices
+          schema:
+            type: string
+            enum:
+              - questions
+      responses:
+        "200":
+          description: The set
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuestionSet"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      tags:
+        - Question sets
+      summary: Change a question set (owner only)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                  minLength: 3
+                  maxLength: 255
+                description:
+                  type: string
+                subject:
+                  type: string
+                grade_level:
+                  type: string
+            example:
+              title: Philippine Literature 101
+      responses:
+        "200":
+          description: The changed set
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      tags:
+        - Question sets
+      summary: Delete a question set (owner only)
+      security:
+        - bearerAuth: []
+      responses:
+        "204":
+          description: Deleted
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /question-sets/{id}/cover:
+    put:
+      tags:
+        - Question sets
+      summary: Upload the cover picture (PNG or JPEG, at most 1 MB)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - cover
+              properties:
+                cover:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: The set with its cover_url
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "413":
+          description: The picture is bigger than 1 MB (FILE_TOO_LARGE)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /question-sets/{id}/questions:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+    get:
+      tags:
+        - Question bank
+      summary: List the questions of my set, with the correct choice
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: The questions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Question"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    post:
+      tags:
+        - Question bank
+      summary: Add a question with 2 to 4 choices (exactly one correct)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - text
+                - choices
+              properties:
+                text:
+                  type: string
+                  minLength: 3
+                  maxLength: 500
+                time_limit_sec:
+                  type: integer
+                  minimum: 5
+                  maximum: 120
+                choices:
+                  type: array
+                  minItems: 2
+                  maxItems: 4
+                  items:
+                    type: object
+                    properties:
+                      text:
+                        type: string
+                      is_correct:
+                        type: boolean
+            example:
+              text: Which planet has rings?
+              time_limit_sec: 20
+              choices:
+                - text: Saturn
+                  is_correct: true
+                - text: Mars
+                  is_correct: false
+      responses:
+        "201":
+          description: Created in one transaction
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Question"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: A game already used this set (QUESTION_SET_FROZEN)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /question-sets/{id}/questions/{questionId}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+      - name: questionId
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+    patch:
+      tags:
+        - Question bank
+      summary: Change a question or replace its choices
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                text:
+                  type: string
+                time_limit_sec:
+                  type: integer
+                choices:
+                  type: array
+                  items:
+                    type: object
+      responses:
+        "200":
+          description: The changed question
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+    delete:
+      tags:
+        - Question bank
+      summary: Delete a question
+      security:
+        - bearerAuth: []
+      responses:
+        "204":
+          description: Deleted
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /sessions:
+    post:
+      tags:
+        - Sessions
+      summary: Start a game from a question set (the server makes the 6-digit code)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - question_set_id
+              properties:
+                question_set_id:
+                  type: integer
+                  minimum: 1
+                duration_sec:
+                  type: integer
+                  minimum: 30
+                  maximum: 3600
+                  default: 300
+            example:
+              question_set_id: 1
+              duration_sec: 300
+      responses:
+        "201":
+          description: The game
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Session"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    get:
+      tags:
+        - Sessions
+      summary: List my games (host) or all games (admin), paged
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum:
+              - id
+              - created_at
+              - status
+      responses:
+        "200":
+          description: "{ data, meta }"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /sessions/{code}:
+    parameters:
+      - name: code
+        in: path
+        required: true
+        schema:
+          type: string
+          pattern: ^[1-9][0-9]{5}$
+    get:
+      tags:
+        - Sessions
+      summary: Read a game by its join code
+      responses:
+        "200":
+          description: The game
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Session"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      tags:
+        - Sessions
+      summary: Start or end a game (host of that game)
+      description: WAITING to ACTIVE or ENDED, ACTIVE to ENDED. Nothing leaves ENDED.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: string
+                  enum:
+                    - ACTIVE
+                    - ENDED
+            example:
+              status: ACTIVE
+      responses:
+        "200":
+          description: The game with its new status
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: INVALID_STATUS_CHANGE
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /sessions/{code}/players:
+    parameters:
+      - name: code
+        in: path
+        required: true
+        schema:
+          type: string
+          pattern: ^[1-9][0-9]{5}$
+    post:
+      tags:
+        - Sessions
+      summary: Join a game, or rejoin it with the same seat
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - nickname
+              properties:
+                nickname:
+                  type: string
+                  minLength: 2
+                  maxLength: 20
+            example:
+              nickname: Nova
+      responses:
+        "200":
+          description: "The account already had a seat: same player_id, rejoined true"
+        "201":
+          description: A new seat
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: NICKNAME_TAKEN, GAME_ALREADY_STARTED or SESSION_FULL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    get:
+      tags:
+        - Sessions
+      summary: List the nicknames and stars of a game
+      responses:
+        "200":
+          description: Nicknames and stars only, never school IDs
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /sessions/{code}/players/me:
+    get:
+      tags:
+        - Gameplay
+      summary: See my own stars, streak, rewards and rank
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: ^[1-9][0-9]{5}$
+      responses:
+        "200":
+          description: My seat and my rank
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /sessions/{code}/question:
+    get:
+      tags:
+        - Gameplay
+      summary: Get my next question; the questions loop until the timer ends (never shows the correct choice)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: ^[1-9][0-9]{5}$
+      responses:
+        "200":
+          description: The question; the server starts my clock
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServedQuestion"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: GAME_NOT_ACTIVE, GAME_TIME_UP or NO_QUESTIONS
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /sessions/{code}/answers:
+    post:
+      tags:
+        - Gameplay
+      summary: Answer the question I was served (time and stars are decided by the server)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: ^[1-9][0-9]{5}$
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - question_id
+                - choice_id
+              properties:
+                question_id:
+                  type: integer
+                choice_id:
+                  type: integer
+            example:
+              question_id: 12
+              choice_id: 45
+      responses:
+        "200":
+          description: The result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnswerResult"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: ALREADY_ANSWERED, NOT_CURRENT_QUESTION, GAME_NOT_ACTIVE or GAME_TIME_UP
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /sessions/{code}/chests/{offerId}/open:
+    post:
+      tags:
+        - Gameplay
+      summary: Open a Mystery Chest (pick slot 1, 2 or 3)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: ^[1-9][0-9]{5}$
+        - name: offerId
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - slot
+              properties:
+                slot:
+                  type: integer
+                  minimum: 1
+                  maximum: 3
+            example:
+              slot: 2
+      responses:
+        "200":
+          description: "The reward: DOUBLE_STAR, STREAK_PROTECTION or EMPTY"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: CHEST_ALREADY_OPENED
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /sessions/{code}/leaderboard:
+    get:
+      tags:
+        - Gameplay
+      summary: The leaderboard with shared ranks (1, 2, 2, 4)
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: ^[1-9][0-9]{5}$
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 10
+      responses:
+        "200":
+          description: Best first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LeaderboardRow"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
