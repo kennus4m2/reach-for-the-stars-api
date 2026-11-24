@@ -6,12 +6,20 @@ const path = require('path');
 const routes = require('./routes');
 const notFound = require('./middlewares/not-found');
 const errorHandler = require('./middlewares/error-handler');
+const helmet = require('helmet');
+const cors = require('cors');
 
 const app = express();
 
 // Middleware runs in this order for every request.
 if (env.nodeEnv !== 'test') app.use(morgan('dev'));   // 1. one log line per request
 app.use(express.json());                              // 2. turn the JSON body into req.body
+
+app.set('trust proxy', 1);
+app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
+app.use(cors({ origin: (origin, done) => done(null, !origin || env.corsOrigins.includes(origin)) }));
+
+app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
 // Hub Contract: every endpoint lives under /api/v1
 app.use('/api/v1', routes);                           // 3. the routes

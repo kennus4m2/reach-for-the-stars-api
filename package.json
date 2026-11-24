@@ -16,7 +16,8 @@
     "db:check": "node scripts/db-check.js",
     "check": "node scripts/ci-check.js",
     "test": "jest --runInBand",
-    "test:coverage": "jest --runInBand --coverage"
+    "test:coverage": "jest --runInBand --coverage",
+    "start:render": "sequelize-cli db:migrate && node scripts/create-admin.js && node src/server.js"
   },
 
   "jest": {
