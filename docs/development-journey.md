@@ -12,7 +12,7 @@ One entry per milestone, written the week you did it. Newest at the bottom.
 - Goal: Install the shared kit on `feature/auth` without breaking lines A to G of the check.
 
 - What I built: copied `.github`, `scripts`, `src`, `tests`, `postman`, `uploads`, `docs`, `render.yaml` and `CHANGELOG.md` into my repository; installed bcryptjs, jsonwebtoken, multer, cors, helmet, swagger-ui-express, yaml, sequelize-cli, jest and supertest; added `JWT_SECRET`, `JWT_EXPIRES_IN` and `CORS_ORIGINS` to `.env` and `.env.example`; updated `.gitignore`.
-- Evidence: https://github.com/kennus4m2/reach-for-the-stars-api/tree/feature/auth · `9c8b8e1461492707e823f6dc876ea397d2f7b5c6` (chore: install the Weeks 12-18 kit), `1a5958fcf10d04c5ed88ae4b0b46753b72fe9236` (docs: add the missing /docs route and OpenAPI paths)
+- Evidence: [feature/auth branch](https://github.com/kennus4m2/reach-for-the-stars-api/tree/feature/auth) · `9c8b8e1461492707e823f6dc876ea397d2f7b5c6` (chore: install the Weeks 12-18 kit), `1a5958fcf10d04c5ed88ae4b0b46753b72fe9236` (docs: add the missing /docs route and OpenAPI paths)
 - Problem I hit: I confused the two docs folders. `src/docs/` holds the OpenAPI file that Swagger UI reads, and `docs/` holds the portfolio documents and the development journey. I pasted the kit's docs into one place and forgot the other, so part of what I needed was missing from my repository.
 - How I solved it: I ran `git status` to see what was in the commit, then pasted the missing files into the correct folder and made a second commit, so the work went in as two commits instead of one. The first commit holds the first part and the second holds the part I forgot.
 - Decision I made and why: I keep the two folders for different jobs: `src/docs/` for what the running API serves (`openapi.yaml`, the Swagger UI route) and `docs/` for the written SE1 portfolio. I also read `git status` before every commit. Cost: two places to remember, but the API documentation stays next to the code that serves it.
@@ -47,6 +47,31 @@ One entry per milestone, written the week you did it. Newest at the bottom.
 - What I would explain to a classmate: `include` loads a set, its questions and their choices in one query; a loop would run one query per row (the N+1 problem).
 
 ## M3 · Gameplay
+
+- Changes to my design set: I compared my Week 7 endpoint table (18 endpoints) with the finished API. No endpoint was dropped. Eleven are unchanged or only improved, and seven changed in name or shape:
+
+| # | Week 7 endpoint | Now | Why |
+| --- | --- | --- | --- |
+| 1, 2 | GET /game-info, GET /health | kept | Hub Contract |
+| 3 | POST /auth/login | body is `{school_id, password}` instead of `{username, password}`, and any role can log in | the Hub identifies accounts by school ID, and players log in too, not only hosts. I added `POST /auth/register` and `GET /auth/me` |
+| 4 | POST /question-sets | kept | |
+| 5 | GET /question-sets | now paged `{ data, meta }`, with `?q` search and an allow-listed `?sort` | needed for long lists; an empty list is still 200 |
+| 6 | GET /question-sets/{id} | kept, plus `?include=questions`; the 403 code is `FORBIDDEN` instead of `NOT_YOUR_QUESTION_SET` | one shared error format for every module, and `include` avoids one query per question |
+| 7 | PUT /question-sets/{id} | changed to PATCH | a host changes only the fields they send; replacing the whole set was risky |
+| 8 | DELETE /question-sets/{id} | answers 204 instead of 200; `QUESTION_SET_IN_USE` kept through the constraint map | 204 means "done, nothing to return" |
+| 9 | POST /sessions | kept; the server makes the 6-digit code | |
+| 10 | GET /sessions | kept; now paged | it was missing at first, and I built it in M3 |
+| 11 | GET /sessions/{code} | kept | |
+| 12 | PATCH /sessions/{code} | status values are `ACTIVE` and `ENDED` instead of "playing" and "ended"; illegal changes are 409 `INVALID_STATUS_CHANGE` | they match the database check constraint |
+| 13 | POST /sessions/{code}/players | kept; an account that already has a seat gets 200 with the same seat | Design Change Notice 01 (`uq_one_seat`) |
+| 14 | GET /sessions/{code}/players/me | kept; returns stars, streak, rewards and rank | it was missing at first, and I built it in M3 |
+| 15 | GET /sessions/{code}/questions/next | renamed to GET /sessions/{code}/question | each player has their own pointer, and the questions loop until the timer ends, so it is "my current question" and not "the next one"; it also returns `round` |
+| 16 | POST /sessions/{code}/answers | body uses `choice_id` instead of `choice_index`; answers 200 instead of 201 | the server checks that the choice belongs to the question; an answer updates a score and it is not a new resource I return |
+| 17 | POST /sessions/{code}/chests | renamed to POST /sessions/{code}/chests/{offerId}/open, body `{slot}` | the chest is a resource, so its id is in the URL |
+| 18 | GET /sessions/{code}/leaderboard | kept; equal stars share a rank (1, 2, 2, 4) | |
+
+  New endpoints that were not in the Week 7 table: `POST /auth/register`, `GET /auth/me`, `GET /users`, `PATCH /users/{id}/role`, `GET /sessions/{code}/players`, the four `/question-sets/{id}/questions` endpoints and `PUT /question-sets/{id}/cover`. I added them because accounts, an admin, a question bank and a cover picture became requirements in Weeks 12 and 13.
+  Design rule changes: the questions loop until the game timer ends, so the one-answer-per-question database rule was removed; the same served question still cannot be answered twice (409 `ALREADY_ANSWERED`).
 
 ## M4 · Automated tests and server preparation
 

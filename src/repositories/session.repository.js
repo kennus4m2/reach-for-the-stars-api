@@ -5,4 +5,8 @@ const create = (data) => GameSession.create(data);
 const update = (session, changes) => session.update(changes);
 const countForSet = (setId) => GameSession.count({ where: { question_set_id: setId } });
 
-module.exports = { findByCode, create, update, countForSet };
+const { toOffset } = require('../utils/paginate');
+
+const findPage = ({ hostId, sort = 'id', order = 'desc', page, limit }) => GameSession.findAndCountAll({ where: hostId ? { host_id: hostId } : {}, order: [[sort, order.toUpperCase()]], ...toOffset({ page, limit }) });
+
+module.exports = { findByCode, create, update, countForSet, findPage }; 

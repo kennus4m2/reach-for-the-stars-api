@@ -21,5 +21,7 @@ router.get('/:code/question', requireUser(), playRules.codeRules, validate, play
 router.post('/:code/answers', requireUser(), playRules.answerRules, validate, playController.answer);
 router.post('/:code/chests/:offerId/open', requireUser(), playRules.chestRules, validate, playController.openChest);
 router.get('/:code/leaderboard', playRules.leaderboardRules, validate, playController.leaderboard);
+router.get('/', requireUser('HOST', 'ADMIN'), rules.listRules, validate, sessionController.list);
+router.get('/:code/players/me', requireUser(), playRules.codeRules, validate, playController.me);
 
 module.exports = router;

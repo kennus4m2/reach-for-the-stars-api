@@ -21,4 +21,7 @@ const joinRules = [
     .isLength({ min: 2, max: 20 }).withMessage('nickname must be 2 to 20 characters'),
 ];
 
-module.exports = { codeParam, createRules, statusRules, joinRules };
+const { pageRules, sortRules } = require('./list.validator');
+const listRules = [...pageRules, ...sortRules(['id', 'created_at', 'status'])];
+
+module.exports = { codeParam, createRules, statusRules, joinRules, listRules };

@@ -92,4 +92,10 @@ async function leaderboard(code, limit) {
   return scoring.rankByStars(players.map((p) => ({ nickname: p.nickname, stars: p.stars, best_streak: p.best_streak })));
 }
 
+async function myStatus(code, user) {
+  const { session, seat } = await seatOf(code, user);
+  const ranked = scoring.rankByStars((await playerRepository.findRanked(session.id)).map((p) => ({ id: p.id, nickname: p.nickname, stars: p.stars })));
+  return { seat, rank: ranked.find((p) => p.id === seat.id).rank, players: ranked.length };
+}
+
 module.exports = { currentQuestion, submitAnswer, openChest, leaderboard };

@@ -14,8 +14,18 @@
     "db:seed:undo": "sequelize-cli db:seed:undo:all",
     "db:reset": "node scripts/db-wipe.js && sequelize-cli db:migrate && sequelize-cli db:seed:all",
     "db:check": "node scripts/db-check.js",
-    "check": "node scripts/ci-check.js"
+    "check": "node scripts/ci-check.js",
+    "test": "jest --runInBand",
+    "test:coverage": "jest --runInBand --coverage"
   },
+
+  "jest": {
+  "testEnvironment": "node",
+  "globalSetup": "./tests/setup/global-setup.js",
+  "collectCoverageFrom": ["src/**/*.js", "!src/server.js"],
+  "coverageReporters": ["text-summary", "html"]
+  },
+  
   "engines": {
     "node": ">=22"
   },

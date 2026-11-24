@@ -27,4 +27,11 @@ async function leaderboard(req, res) {
   res.json(await playService.leaderboard(code, limit || 10));
 }
 
-module.exports = { question, answer, openChest, leaderboard };
+async function me(req, res) {
+  const { code } = matchedData(req);
+  const { seat, rank, players } = await playService.myStatus(code, req.user);
+  res.json({ player_id: seat.id, nickname: seat.nickname, stars: seat.stars, current_streak: seat.current_streak, best_streak: seat.best_streak,
+    double_star_ready: seat.double_star_ready, protection_ready: seat.protection_ready, answers: seat.answer_count, rank, players });
+}
+
+module.exports = { question, answer, openChest, leaderboard, me };

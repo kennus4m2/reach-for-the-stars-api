@@ -1,5 +1,12 @@
 const { matchedData } = require('express-validator');
 const sessionService = require('../services/session.service');
+const { envelope } = require('../utils/paginate');
+
+async function list(req, res) {
+  const query = matchedData(req);
+  const { rows, count } = await sessionService.list(req.user, query);
+  res.json(envelope(rows.map(toJson), count, { page: query.page, limit: query.limit }));
+}
 
 const toJson = (s) => ({
   code: s.join_code, status: s.status, question_set_id: s.question_set_id, duration_sec: s.duration_sec,
@@ -18,4 +25,4 @@ async function changeStatus(req, res) {
   res.json(toJson(await sessionService.changeStatus(code, status, req.user)));
 }
 
-module.exports = { create, get, changeStatus };
+module.exports = { create, get, changeStatus, list };
