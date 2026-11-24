@@ -5,7 +5,7 @@
 1. On `feature/api-docs`, copy `scripts`, `src` and `tests` into your repository. Replace `scripts/ci-check.js`. Commit: `chore: update the check to Week 15`.
 2. `npm install swagger-ui-express yaml`
 3. In `src/routes/index.js`, next to the Hub endpoints (before `currentUser`): `router.use(require('./docs.routes'));`
-4. Replace every CHANGE_ME in `src/docs/openapi.yaml`, then document every endpoint of your game.
+4. Replace with your own text in `src/docs/openapi.yaml`, then document every endpoint of your game.
 
 | File | Job |
 |---|---|

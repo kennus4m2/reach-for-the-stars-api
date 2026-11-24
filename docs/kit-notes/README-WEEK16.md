@@ -5,7 +5,7 @@
 1. On `feature/portfolio`, copy `scripts`, `docs` and `CHANGELOG.md` into your repository. Replace `scripts/ci-check.js`. Commit: `chore: update the check to Week 16`.
 2. In `package.json` scripts: `"docs:dictionary": "node scripts/make-data-dictionary.js"` and `"docs:api": "node scripts/make-api-reference.js"`.
 3. `npm run db:migrate`, then `npm run docs:dictionary` and `npm run docs:api`.
-4. Replace every `[Your ...]` in `docs/` and `CHANGELOG.md`. Put the six diagrams in `docs/diagrams/`.
+4. Put the six diagrams in `docs/diagrams/`.
 
 | File | Job |
 |---|---|
