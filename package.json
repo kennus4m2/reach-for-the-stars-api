@@ -19,14 +19,18 @@
     "test:coverage": "jest --runInBand --coverage",
     "start:render": "sequelize-cli db:migrate && node scripts/create-admin.js && node src/server.js"
   },
-
   "jest": {
-  "testEnvironment": "node",
-  "globalSetup": "./tests/setup/global-setup.js",
-  "collectCoverageFrom": ["src/**/*.js", "!src/server.js"],
-  "coverageReporters": ["text-summary", "html"]
+    "testEnvironment": "node",
+    "globalSetup": "./tests/setup/global-setup.js",
+    "collectCoverageFrom": [
+      "src/**/*.js",
+      "!src/server.js"
+    ],
+    "coverageReporters": [
+      "text-summary",
+      "html"
+    ]
   },
-  
   "engines": {
     "node": ">=22"
   },

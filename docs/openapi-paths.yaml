@@ -198,19 +198,6 @@
         "401": { $ref: "#/components/responses/Unauthorized" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
-    get:
-      tags: [Sessions]
-      summary: List my games (host) or all games (admin), paged
-      security: [{ bearerAuth: [] }]
-      parameters:
-        - { name: page, in: query, schema: { type: integer, minimum: 1 } }
-        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 50 } }
-        - { name: sort, in: query, schema: { type: string, enum: [id, created_at, status] } }
-      responses:
-        "200": { description: "{ data, meta }" }
-        "400": { $ref: "#/components/responses/BadRequest" }
-        "401": { $ref: "#/components/responses/Unauthorized" }
-        "403": { $ref: "#/components/responses/Forbidden" }
   /sessions/{code}:
     parameters:
       - { name: code, in: path, required: true, schema: { type: string, pattern: "^[1-9][0-9]{5}$" } }
@@ -265,19 +252,6 @@
       responses:
         "200": { description: "Nicknames and stars only, never school IDs" }
         "400": { $ref: "#/components/responses/BadRequest" }
-        "404": { $ref: "#/components/responses/NotFound" }
-  /sessions/{code}/players/me:
-    get:
-      tags: [Gameplay]
-      summary: See my own stars, streak, rewards and rank
-      security: [{ bearerAuth: [] }]
-      parameters:
-        - { name: code, in: path, required: true, schema: { type: string, pattern: "^[1-9][0-9]{5}$" } }
-      responses:
-        "200": { description: My seat and my rank }
-        "400": { $ref: "#/components/responses/BadRequest" }
-        "401": { $ref: "#/components/responses/Unauthorized" }
-        "403": { $ref: "#/components/responses/Forbidden" }
         "404": { $ref: "#/components/responses/NotFound" }
   /sessions/{code}/question:
     get:
