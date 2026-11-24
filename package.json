@@ -19,14 +19,18 @@
     "test:coverage": "jest --runInBand --coverage",
     "start:render": "sequelize-cli db:migrate && node scripts/create-admin.js && node src/server.js"
   },
-
   "jest": {
-  "testEnvironment": "node",
-  "globalSetup": "./tests/setup/global-setup.js",
-  "collectCoverageFrom": ["src/**/*.js", "!src/server.js"],
-  "coverageReporters": ["text-summary", "html"]
+    "testEnvironment": "node",
+    "globalSetup": "./tests/setup/global-setup.js",
+    "collectCoverageFrom": [
+      "src/**/*.js",
+      "!src/server.js"
+    ],
+    "coverageReporters": [
+      "text-summary",
+      "html"
+    ]
   },
-  
   "engines": {
     "node": ">=22"
   },
@@ -45,12 +49,12 @@
     "pg": "^8.23.1",
     "pg-hstore": "^2.3.4",
     "sequelize": "^6.37.8",
+    "sequelize-cli": "^6.6.5",
     "swagger-ui-express": "^5.0.1",
     "yaml": "^2.9.1"
   },
   "devDependencies": {
     "jest": "^30.5.2",
-    "sequelize-cli": "^6.6.5",
     "supertest": "^7.3.2"
   }
 }
