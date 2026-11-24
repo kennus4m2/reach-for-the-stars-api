@@ -3,6 +3,8 @@
 Backend API for **Reach For The Stars**, a tournament game for the SorSU Bulan Campus library.
 CS 313 Software Engineering 1, A.Y. 2026-2027.
 
+Live API: https://reach-for-the-stars-kennus4m2.onrender.com/api/v1
+
 - Developer: Nickson M. Formento (kennus4m2), BSCS 3-1
 - Group and game concept: Team 5 - Reach for the Stars is a library-hosted multiplayer trivia tournament where players independently answer educational questions, earn stars, use strategic mystery-chest rewards, and compete to finish with the highest score before the round timer ends.
 
