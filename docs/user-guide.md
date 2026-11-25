@@ -1,31 +1,42 @@
-# User guide: [Your Game Title] API
+# User guide: Reach For The Stars API
 
-How each kind of user works with the API. Base URL: [your live address]/api/v1. Every endpoint can be tried in Swagger UI at `/docs/`.
+How each kind of user works with the API. Base URL: https://reach-for-the-stars-kennus4m2.onrender.com/api/v1. Every endpoint can be tried in Swagger UI at `/docs/`.
 
 ## Players
 
-1. [Your step: create an account]
-2. [Your step: log in and keep the token]
-3. [Your step: join a game; what happens on a rejoin]
-4. [Your step: how a player plays your game]
-5. [Your step: the leaderboard or progress]
+1. **Create an account.** Send `POST /auth/register` with your school ID (format `2026-1234`, four digits, a dash, four digits), full name (2 to 100 characters), email and a password (8 to 72 characters, with at least one letter and one number). There is no username. Everyone who registers is a PLAYER, even if the request asks for another role. School ID and email must be unique, so a second account with the same ones is rejected (409 `SCHOOL_ID_TAKEN` or `EMAIL_TAKEN`).
+2. **Log in and keep the token.** Send your school ID and password to `POST /auth/login`. The response contains a `token`, which is valid for about an hour. Send it with every later request in the header `Authorization: Bearer <token>`. In Swagger UI, paste it into the Authorize box. If you get a 401 `INVALID_TOKEN`, log in again.
+3. **Join a game.** Send `POST /sessions/{code}/players` with the six-digit join code from the host and a nickname (2 to 20 characters). Your nickname must be unused in that game (409 `NICKNAME_TAKEN`). Each account has one seat per game, so if you join the same game again you get your original seat back (status 200 instead of 201), with your stars and streak intact. A new player cannot join once the host has started the game (409 `GAME_ALREADY_STARTED`), and a game holds at most 30 players (409 `SESSION_FULL`).
+4. **Play.** Ask for your question with `GET /sessions/{code}/question`. The server records when it served you the question. Send your pick with `POST /sessions/{code}/answers`, giving the `question_id` and the `choice_id`; never send a time or points, because the server measures the time and decides the result. A correct answer inside the time limit earns 1 star and grows your streak. A wrong answer, or a correct one that arrives after the time limit, takes 1 star away (never below 0) and resets your streak. Speed does not give extra stars; it only matters through the time limit and as a tie-break on the leaderboard. Rewards are applied automatically when they are ready: a **double star** makes your next correct answer worth 2 stars, and a **streak protection** keeps your stars and streak after your next wrong answer. Every 5th correct answer in a row comes with a chest offer (`chest_offer_id` in the answer). Open it with `POST /sessions/{code}/chests/{offerId}/open`, sending a `slot` of 1, 2 or 3, to reveal DOUBLE_STAR, STREAK_PROTECTION or EMPTY. The questions loop: after the last question the first one comes again (`round` goes up), so you can keep answering until the timer ends. You cannot answer a question twice; ask for the next one with `GET /question`.
+5. **Check the leaderboard and your progress.** `GET /sessions/{code}/leaderboard?limit=10` (1 to 50, default 10) ranks the players by stars, with `rank`, `nickname`, `stars` and `best_streak`. Players with equal stars share a rank (1, 2, 2, 4). Players with equal stars are ordered by more correct answers, then by lower total answer time. Your own progress is at `GET /sessions/{code}/players/me`: your stars, current and best streak, number of answers, whether a double star or protection is ready, and your rank.
 
-[Your description: when a player counts as having completed a game.]
+A player counts as having **completed** a game, in the results the Hub reads, when they answered every question of the question set at least once. Players who did not get that far still appear, with `completed: false` and no rank.
 
 ## Hosts
 
-1. [Your step: prepare the content of a game]
-2. [Your step: start a game and show the code]
-3. [Your step: run the game to the end]
+1. **Prepare the content of a game.** Create a question set with `POST /question-sets`: a title (3 to 255 characters) and optionally a description (up to 1000), subject (up to 100) and grade level (up to 50). Add a cover image with `PUT /question-sets/{id}/cover` (form-data, key `cover`, a PNG or JPEG of at most 1 MB). Add questions with `POST /question-sets/{id}/questions`: the text (3 to 500 characters), an optional time limit in seconds (5 to 120, default 20) and 2 to 4 choices, each with text and `is_correct`, with exactly one correct choice. All questions are multiple choice, and the server sets their order. Change or remove them with `PATCH` and `DELETE` on `/question-sets/{id}/questions/{questionId}`. Once a game has used a question set, it is frozen: its questions cannot change (409 `QUESTION_SET_FROZEN`) and the set cannot be deleted (409 `QUESTION_SET_IN_USE`). You can list your sets with `GET /question-sets` (paged, with `?q=` search and `?sort=`).
+2. **Start a game and show the code.** Create a session with `POST /sessions`, giving the `question_set_id` of one of your own sets and optionally `duration_sec` (30 to 3600, default 300). The response contains the six-digit `code`. Show it to your players and wait for them to join. Then start the game with `PATCH /sessions/{code}` and `{"status": "ACTIVE"}`. The end time is set from the start time plus the duration.
+3. **Run the game to the end.** Players move through the questions at their own pace, so you do not advance questions. Watch `GET /sessions/{code}/leaderboard` while the game runs. The game closes when the timer ends, or sooner if you send `PATCH /sessions/{code}` with `{"status": "ENDED"}`. When the time is up, the server closes the game the first time a player asks for a question or sends an answer, so results exist even if the host never presses end. A game that has ended cannot be started again (409 `INVALID_STATUS_CHANGE`). Afterwards the leaderboard stays available, and `GET /sessions` lists your games.
 
 ## Admins
 
-[Your description: managing accounts and roles; the first admin on a new server.]
+Admins manage accounts and roles. `GET /users` lists every account (never with passwords), and `PATCH /users/{id}/role` with a `role` of PLAYER, HOST or ADMIN changes a role, for example to make a teacher a host. An admin cannot change their own role (409 `CANNOT_CHANGE_OWN_ROLE`). On a new server nobody can log in yet, so the first admin is created automatically at startup from the environment variables `ADMIN_SCHOOL_ID` and `ADMIN_PASSWORD` set in Render. Log in with those credentials. This version has no endpoint to change a password, so keep the admin password safe.
 
 ## The Library Game Hub
 
-[Your description: GET /results with X-Hub-Key, ?since=, what each game lists.]
+The Hub reads results with `GET /results`, sending its key in the `X-Hub-Key` header. Without the key the answer is 401 `HUB_KEY_REQUIRED`. Add `?since=<timestamp>`, for example `?since=2026-10-20T00:00:00Z` (ISO 8601), to receive only games that ended after that moment, so the Hub can poll without downloading everything again; a value that is not a date gives 400 `INVALID_SINCE`. The answer has the game slug, the developer, `generated_at` and a list of finished games. Each game lists its `session_code`, `started_at`, `ended_at`, every player with `school_id`, `nickname`, `score` (the stars), `completed` and `rank`, and a `podium` of the completed players ranked 1 to 3 (with a tie it can hold more). Games still waiting or running are not listed. The Hub key opens `/results` only: every other endpoint needs a login token.
 
 ## When something goes wrong
 
-[Your description: the error format, and the codes a user of your game is most likely to meet.]
+Errors come back with an HTTP status code and a JSON body: `{ "error": { "code": "...", "message": "..." } }`. The `code` is for programs and the `message` is for people. A 400 `VALIDATION_FAILED` names the fields that were wrong. The codes a user is most likely to meet:
+
+| Status | Codes | Meaning and what to do |
+|---|---|---|
+| 400 | `VALIDATION_FAILED`, `INVALID_JSON`, `INVALID_SINCE`, `INVALID_FILE_TYPE`, `CHOICE_NOT_IN_QUESTION` | The request is malformed, a field is missing or invalid, or the file is not a PNG or JPEG. Check the fields against Swagger UI. |
+| 401 | `AUTH_REQUIRED`, `INVALID_TOKEN`, `INVALID_CREDENTIALS`, `HUB_KEY_REQUIRED` | No token, a damaged or expired token, a wrong school ID or password, or a missing Hub key. Log in again and resend the token. |
+| 403 | `FORBIDDEN` | Your role is not allowed to do this, the question set or game belongs to another host, or you have no seat in that game. Use the right account, or join the game first. |
+| 404 | `SESSION_NOT_FOUND`, `QUESTION_SET_NOT_FOUND`, `QUESTION_NOT_FOUND`, `USER_NOT_FOUND`, `CHEST_NOT_FOUND` | The game, question set, question, account or chest does not exist. Check the code or id. |
+| 409 | `SCHOOL_ID_TAKEN`, `EMAIL_TAKEN`, `NICKNAME_TAKEN`, `GAME_ALREADY_STARTED`, `SESSION_FULL`, `INVALID_STATUS_CHANGE`, `QUESTION_SET_FROZEN`, `QUESTION_SET_IN_USE`, `CANNOT_CHANGE_OWN_ROLE`, `ALREADY_ANSWERED`, `NOT_CURRENT_QUESTION`, `CHEST_ALREADY_OPENED` | A rule was broken: a duplicate value, a game that is full or already started, a status change that is not allowed, or an answer for a question that is not your current one. Choose different values, or do not resend the answer. |
+| 409 | `GAME_NOT_ACTIVE`, `GAME_TIME_UP`, `NO_QUESTIONS` | The game has not started, the time is up, or the question set has no questions. Look at the leaderboard or the final results instead. |
+| 413 | `FILE_TOO_LARGE` | The cover picture is bigger than 1 MB. |
+| 500 | `INTERNAL_ERROR` | A fault in the server. Try again, and tell the developer if it continues. |

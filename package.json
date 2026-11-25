@@ -17,7 +17,9 @@
     "check": "node scripts/ci-check.js",
     "test": "jest --runInBand",
     "test:coverage": "jest --runInBand --coverage",
-    "start:render": "sequelize-cli db:migrate && node scripts/create-admin.js && node src/server.js"
+    "start:render": "sequelize-cli db:migrate && node scripts/create-admin.js && node src/server.js",
+    "docs:dictionary": "node scripts/make-data-dictionary.js",
+    "docs:api": "node scripts/make-api-reference.js"
   },
   "jest": {
     "testEnvironment": "node",
