@@ -127,7 +127,7 @@ One entry per milestone, written the week you did it. Newest at the bottom.
 
 ## M7 · The Test Report
 
-- Dates worked: Nov 25, 2026 · Time spent: <1 hour
+- Dates worked: Nov 25, Nov 27, and Nov 28, 2026 · Time spent: <7 hours
 - Goal: Prove with my own evidence that the API works, using eight tools.
 
 - What I built: the Test Report PDF (`docs/test-report.pdf`) with manual Postman cases, the Collection Runner and newman results (84 requests, 147 tests, 0 failed on a fresh database), Jest unit and supertest results (50 tests in 9 suites, 86.8% line coverage and an analysis of what was not covered), Swagger UI checks with Authorize, curl security checks (CORS for an allowed and an unlisted origin, `/results` with and without the Hub key, no stack traces), the GitHub Actions scorecard and the live smoke test on Render (a 30-second game, round 2, then `GAME_TIME_UP`, then `/results`), and a defect log.
