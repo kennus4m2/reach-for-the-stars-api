@@ -1,6 +1,6 @@
 {
   "name": "reach-for-the-stars-api",
-  "version": "1.4.0",
+  "version": "1.6.0",
   "description": "Reach for the Stars is a library-hosted multiplayer trivia tournament where players independently answer educational questions, earn stars, use strategic mystery-chest rewards, and compete to finish with the highest score before the round timer ends. (CS 313 Software Engineering 1)",
   "main": "src/server.js",
   "scripts": {

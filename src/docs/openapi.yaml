@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Reach for the Stars API
-  version: 1.0.0
+  version: 1.6.0
   description: |
     Reach for the Stars is a library-hosted multiplayer trivia tournament. Hosts build question sets and start a game with a 6-digit code; players join
     and answer at their own pace. The questions loop (after the last one comes the first again) until the timer of the game ends. Correct answers earn stars,

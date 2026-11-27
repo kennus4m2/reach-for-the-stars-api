@@ -1,6 +1,6 @@
 # Technical specification: Reach For The Stars API
 
-Version 1.0.0, SE1 final build. Developer: Nickson M. Formento (kennus4m2), BSCS 3-1. Group: Team 5.
+Version 1.6.0, SE1 final build. Developer: Nickson M. Formento (kennus4m2), BSCS 3-1. Group: Team 5.
 
 ## 1. Purpose and scope
 
